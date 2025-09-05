@@ -71,7 +71,7 @@
     </div>
 
     <script>
-        const quizData = [
+        const fallbackQuizData = [
             {
                 scenario: "You hold: ♠ A K Q 8 ♥ 9 8 7 ♦ 6 5 ♣ 4 3 2. Your partner opens 1♠.",
                 youAre: "South",
@@ -158,7 +158,7 @@
         let score = 0;
         let quizRunning = true;
         let currentQuestion;
-        let currentQuizData = [...quizData];
+        let currentQuizData = [];
 
         const quizArea = document.getElementById('quiz-area');
         const currentScoreSpan = document.getElementById('current-score');
@@ -240,15 +240,29 @@
                 const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
                 
                 if (jsonText) {
-                    currentQuizData = JSON.parse(jsonText);
-                    startQuiz();
+                    try {
+                        const newQuizData = JSON.parse(jsonText);
+                        if (Array.isArray(newQuizData) && newQuizData.length > 0) {
+                            currentQuizData = newQuizData;
+                            console.log("Successfully generated new quiz data.");
+                        } else {
+                            console.error("Generated data is not a valid array, falling back to original questions.");
+                            currentQuizData = fallbackQuizData;
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse JSON from AI, falling back to original questions.", e);
+                        currentQuizData = fallbackQuizData;
+                    }
                 } else {
-                    quizArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong. Please try again.</p>`;
+                    console.error("AI response did not contain text, falling back to original questions.");
+                    currentQuizData = fallbackQuizData;
                 }
             } catch (error) {
-                console.error('Error generating new quiz:', error);
-                quizArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong. Please try again.</p>`;
+                console.error('Error generating new quiz, falling back to original questions:', error);
+                currentQuizData = fallbackQuizData;
             }
+
+            startQuiz();
         }
 
         function showQuestion() {
@@ -299,7 +313,7 @@
                     ${tableHTML}
                 </div>
                 <div class="mb-6 mt-6">
-                    <p class="text-xl sm:text-2xl font-semibold text-gray-800">${currentQuestion.question}</p>
+                    <p class="text-xl sm:text-2xl font-semibold text-gray-800">${currentQuestion.question || "What is your bid?"}</p>
                 </div>
                 <div id="answer-buttons" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     ${currentQuestion.answers.map((answer, index) => `
@@ -350,11 +364,11 @@
                     `;
                     explanationArea.innerHTML = explanationsHTML;
                 } else {
-                    explanationArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong. Please try again.</p>`;
+                    explanationArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong with the explanation.</p>`;
                 }
             } catch (error) {
                 console.error('Error generating explanation:', error);
-                explanationArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong. Please try again.</p>`;
+                explanationArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong with the explanation.</p>`;
             }
 
             // After explanation is loaded, add the next question button
@@ -433,6 +447,7 @@
             document.getElementById('generate-new-button').addEventListener('click', generateNewQuiz);
         }
 
+        currentQuizData = fallbackQuizData;
         startQuiz();
 
     </script>

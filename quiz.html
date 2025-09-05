@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge Bidding Quiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 600px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .button-answer {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .button-answer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        #explanation-area {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .bidding-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            table-layout: fixed;
+            margin-top: 1rem;
+        }
+        .bidding-table th, .bidding-table td {
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        .bidding-table th {
+            font-weight: 600;
+            background-color: #f9fafb;
+        }
+        .bidding-table td.player-you {
+            font-weight: 700;
+            background-color: #eff6ff;
+        }
+        .suit-red { color: #ef4444; } /* Tailwind red-500 */
+        .suit-black { color: #1f2937; } /* Tailwind gray-800 */
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 sm:p-6">
+    <div id="quiz-container" class="container mx-auto p-4 sm:p-8 card">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-6">Bridge Bidding Quiz</h1>
+        
+        <div id="quiz-area">
+            <!-- Quiz content will be injected here by JavaScript -->
+        </div>
+
+        <div id="score-area" class="mt-8 text-center text-lg font-semibold text-gray-700">
+            Score: <span id="current-score">0</span>
+        </div>
+
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                scenario: "You hold: ♠ A K Q 8 ♥ 9 8 7 ♦ 6 5 ♣ 4 3 2. Your partner opens 1♠.",
+                youAre: "South",
+                biddingSequence: [
+                    { player: "North", bid: "1♠" },
+                    { player: "East", bid: "Pass" },
+                    { player: "South", bid: "?" },
+                    { player: "West", bid: "Pass" }
+                ],
+                answers: [
+                    { text: "2♠", isCorrect: true },
+                    { text: "1NT", isCorrect: false },
+                    { text: "Pass", isCorrect: false },
+                    { text: "3♠", isCorrect: false }
+                ]
+            },
+            {
+                scenario: "You hold: ♠ 9 8 ♥ A K Q 7 6 ♦ J 5 ♣ A K J 4. Your partner opens 1♦.",
+                youAre: "South",
+                biddingSequence: [
+                    { player: "North", bid: "1♦" },
+                    { player: "East", bid: "Pass" },
+                    { player: "South", bid: "?" },
+                    { player: "West", bid: "Pass" }
+                ],
+                answers: [
+                    { text: "1♠", isCorrect: false },
+                    { text: "2♥", isCorrect: true },
+                    { text: "1♥", isCorrect: false },
+                    { text: "2NT", isCorrect: false }
+                ]
+            },
+            {
+                scenario: "You hold: ♠ Q J 5 ♥ A K Q 8 7 ♦ K 9 3 ♣ 4 2. Your partner opens 1NT.",
+                youAre: "South",
+                biddingSequence: [
+                    { player: "North", bid: "1NT" },
+                    { player: "East", bid: "Pass" },
+                    { player: "South", bid: "?" },
+                    { player: "West", bid: "Pass" }
+                ],
+                answers: [
+                    { text: "2♥ (Stayman)", isCorrect: true },
+                    { text: "3♥", isCorrect: false },
+                    { text: "Pass", isCorrect: false },
+                    { text: "2♦", isCorrect: false }
+                ]
+            },
+            {
+                scenario: "You hold: ♠ A K Q J 10 9 8 7 ♥ 2 ♦ 3 ♣ 4. The auction starts with your partner opening 1♥. RHO passes.",
+                youAre: "South",
+                biddingSequence: [
+                    { player: "North", bid: "1♥" },
+                    { player: "East", bid: "Pass" },
+                    { player: "South", bid: "?" },
+                    { player: "West", bid: "Pass" }
+                ],
+                answers: [
+                    { text: "4♠", isCorrect: true },
+                    { text: "3♠", isCorrect: false },
+                    { text: "2♠", isCorrect: false },
+                    { text: "5♠", isCorrect: false }
+                ]
+            },
+            {
+                scenario: "You hold: ♠ K J 10 7 ♥ A 8 6 5 ♦ Q 4 ♣ A 9. Your partner opens 1♣ and RHO bids 1♦.",
+                youAre: "South",
+                biddingSequence: [
+                    { player: "North", bid: "1♣" },
+                    { player: "East", bid: "1♦" },
+                    { player: "South", bid: "?" },
+                    { player: "West", bid: "Pass" }
+                ],
+                answers: [
+                    { text: "1♠", isCorrect: false },
+                    { text: "1♥", isCorrect: true },
+                    { text: "1NT", isCorrect: false },
+                    { text: "Pass", isCorrect: false }
+                ]
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let quizRunning = true;
+        let currentQuestion;
+        let currentQuizData = [...quizData];
+
+        const quizArea = document.getElementById('quiz-area');
+        const currentScoreSpan = document.getElementById('current-score');
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+        // Utility function to color suits
+        function colorSuits(text) {
+            if (!text) return '';
+            return text.replace(/♠/g, '<span class="suit-black">♠</span>')
+                       .replace(/♣/g, '<span class="suit-black">♣</span>')
+                       .replace(/♥/g, '<span class="suit-red">♥</span>')
+                       .replace(/♦/g, '<span class="suit-red">♦</span>');
+        }
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            quizRunning = true;
+            currentScoreSpan.textContent = score;
+            showQuestion();
+        }
+
+        async function generateNewQuiz() {
+            quizArea.innerHTML = `<p class="text-center text-gray-500 text-xl font-semibold mt-8 animate-pulse">✨ Generating new questions...</p>`;
+
+            const prompt = "Generate five bridge bidding quiz questions. Each question should include a hand scenario, a question, and four possible answers, one of which is correct. The questions should be varied and suitable for a beginner.";
+            const systemPrompt = "You are a bridge master creating quiz questions. Format your response as a JSON array of objects. Each object should have a 'scenario' (string), a 'question' (string), a 'youAre' (string, e.g., 'South'), a 'biddingSequence' (an array of objects with 'player' and 'bid'), and an 'answers' (an array of objects with 'text' and 'isCorrect' boolean). The bidding sequence should include a single entry with 'bid: \"?\"' to indicate the player's turn to bid.";
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "scenario": { "type": "STRING" },
+                                "question": { "type": "STRING" },
+                                "youAre": { "type": "STRING" },
+                                "biddingSequence": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "player": { "type": "STRING" },
+                                            "bid": { "type": "STRING" }
+                                        }
+                                    }
+                                },
+                                "answers": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "text": { "type": "STRING" },
+                                            "isCorrect": { "type": "BOOLEAN" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (jsonText) {
+                    currentQuizData = JSON.parse(jsonText);
+                    startQuiz();
+                } else {
+                    quizArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong. Please try again.</p>`;
+                }
+            } catch (error) {
+                console.error('Error generating new quiz:', error);
+                quizArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong. Please try again.</p>`;
+            }
+        }
+
+        function showQuestion() {
+            if (currentQuestionIndex >= currentQuizData.length) {
+                endQuiz();
+                return;
+            }
+
+            currentQuestion = currentQuizData[currentQuestionIndex];
+            
+            // Generate the bidding table
+            const players = ["North", "East", "South", "West"];
+            const tableRows = Math.ceil(currentQuestion.biddingSequence.length / 4);
+            let tableHTML = `
+                <table class="bidding-table">
+                    <thead>
+                        <tr>
+                            <th>North</th><th>East</th><th>South</th><th>West</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            for (let i = 0; i < tableRows; i++) {
+                tableHTML += `<tr>`;
+                for (let j = 0; j < 4; j++) {
+                    const bidIndex = i * 4 + j;
+                    const player = players[j];
+                    const playerClass = currentQuestion.youAre === player ? 'player-you' : '';
+                    let bidText = '-'; // Default bid if no one has bid yet
+
+                    if (bidIndex < currentQuestion.biddingSequence.length) {
+                        const bidData = currentQuestion.biddingSequence[bidIndex];
+                        bidText = colorSuits(bidData.bid);
+                    }
+                    tableHTML += `<td class="${playerClass}">${bidText}</td>`;
+                }
+                tableHTML += `</tr>`;
+            }
+            tableHTML += `</tbody></table>`;
+
+            quizArea.innerHTML = `
+                <div class="mb-6">
+                    <p class="text-sm font-light text-gray-500 mb-2">Scenario ${currentQuestionIndex + 1}/${currentQuizData.length}</p>
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <p class="text-sm sm:text-base text-gray-600">${colorSuits(currentQuestion.scenario)}</p>
+                    </div>
+                    ${tableHTML}
+                </div>
+                <div class="mb-6 mt-6">
+                    <p class="text-xl sm:text-2xl font-semibold text-gray-800">${currentQuestion.question}</p>
+                </div>
+                <div id="answer-buttons" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    ${currentQuestion.answers.map((answer, index) => `
+                        <button class="button-answer bg-blue-500 text-white font-semibold py-3 px-4 rounded-full shadow-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" data-index="${index}">
+                            ${colorSuits(answer.text)}
+                        </button>
+                    `).join('')}
+                </div>
+                <div id="feedback-message" class="mt-4 text-center text-base sm:text-lg font-bold"></div>
+                <div id="explanation-area" class="mt-8"></div>
+            `;
+            
+            document.querySelectorAll('#answer-buttons button').forEach(button => {
+                button.addEventListener('click', checkAnswer);
+            });
+        }
+
+        async function generateAndShowExplanations(isCorrect) {
+            const explanationArea = document.getElementById('explanation-area');
+            explanationArea.innerHTML = `<p class="text-center text-gray-500">Generating explanations...</p>`;
+
+            const prompt = `Provide a concise explanation for each of the following bridge bids, given the scenario: "${currentQuestion.scenario}". The bids are: ${currentQuestion.answers.map(a => a.text).join(', ')}. Indicate which bid is correct and explain why the others are incorrect or less optimal.`;
+            const systemPrompt = "You are a friendly and knowledgeable bridge tutor. Your goal is to provide a concise and clear explanation for multiple bridge bids, suitable for a beginner. Provide a brief rationale for each bid, identifying the best one.";
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const explanation = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (explanation) {
+                    const explanationsHTML = `
+                        <div class="p-4 rounded-lg bg-gray-100 shadow-inner">
+                            <p class="text-gray-700 font-semibold mb-2">Bid Explanations</p>
+                            <p class="text-sm text-gray-600">${colorSuits(explanation)}</p>
+                        </div>
+                    `;
+                    explanationArea.innerHTML = explanationsHTML;
+                } else {
+                    explanationArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong. Please try again.</p>`;
+                }
+            } catch (error) {
+                console.error('Error generating explanation:', error);
+                explanationArea.innerHTML = `<p class="text-center text-red-500">Sorry, something went wrong. Please try again.</p>`;
+            }
+
+            // After explanation is loaded, add the next question button
+            explanationArea.insertAdjacentHTML('beforeend', `<button id="next-question-button" class="mt-4 bg-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-200 w-full">Next Question</button>`);
+            document.getElementById('next-question-button').addEventListener('click', () => {
+                currentQuestionIndex++;
+                showQuestion();
+            });
+        }
+
+        function checkAnswer(event) {
+            if (!quizRunning) return;
+
+            const selectedButton = event.target;
+            const selectedIndex = selectedButton.dataset.index;
+            const isCorrect = currentQuestion.answers[selectedIndex].isCorrect;
+            const feedbackMessage = document.getElementById('feedback-message');
+            const allButtons = document.querySelectorAll('#answer-buttons button');
+            
+            // Fill in the table with the selected answer
+            const playerIndex = currentQuestion.biddingSequence.findIndex(bid => bid.bid === '?');
+            if (playerIndex !== -1) {
+                const row = Math.floor(playerIndex / 4);
+                const col = playerIndex % 4;
+                const cell = document.querySelector(`.bidding-table tbody tr:nth-child(${row + 1}) td:nth-child(${col + 1})`);
+                if (cell) {
+                    cell.innerHTML = colorSuits(selectedButton.textContent);
+                }
+            }
+
+            allButtons.forEach(button => {
+                button.disabled = true;
+                if (button === selectedButton) {
+                    button.classList.add(isCorrect ? 'bg-green-500' : 'bg-red-500');
+                    button.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                    button.classList.add('shadow-inner');
+                } else {
+                    button.classList.remove('bg-blue-500');
+                    button.classList.add('bg-gray-400');
+                }
+            });
+
+            const correctButton = Array.from(allButtons).find(button => currentQuestion.answers[button.dataset.index].isCorrect);
+            if (correctButton) {
+                correctButton.classList.remove('bg-gray-400');
+                correctButton.classList.add('bg-green-500', 'hover:bg-green-600', 'shadow-inner');
+            }
+
+            if (isCorrect) {
+                score++;
+                feedbackMessage.textContent = 'Correct!';
+                feedbackMessage.classList.add('text-green-600');
+                feedbackMessage.classList.remove('text-red-600');
+            } else {
+                feedbackMessage.textContent = 'Incorrect.';
+                feedbackMessage.classList.add('text-red-600');
+                feedbackMessage.classList.remove('text-green-600');
+            }
+            currentScoreSpan.textContent = score;
+
+            // Immediately generate the explanations and the next button
+            generateAndShowExplanations(isCorrect);
+        }
+
+        function endQuiz() {
+            quizRunning = false;
+            quizArea.innerHTML = `
+                <div class="text-center p-8">
+                    <h2 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">Quiz Complete!</h2>
+                    <p class="text-xl sm:text-2xl font-semibold text-gray-700 mb-6">You scored <span class="text-blue-600">${score}</span> out of <span class="text-blue-600">${currentQuizData.length}</span>.</p>
+                    <button id="restart-button" class="bg-purple-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-purple-700 transition-colors duration-200">Restart Quiz</button>
+                    <button id="generate-new-button" class="mt-4 bg-green-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-green-700 transition-colors duration-200">✨ Generate New Quiz</button>
+                </div>
+            `;
+            document.getElementById('restart-button').addEventListener('click', startQuiz);
+            document.getElementById('generate-new-button').addEventListener('click', generateNewQuiz);
+        }
+
+        startQuiz();
+
+    </script>
+</body>
+</html>
